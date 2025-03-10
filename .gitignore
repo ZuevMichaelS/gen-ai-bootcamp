@@ -1,0 +1,13 @@
+/.idea/*
+.vscode/settings.json
+*.iml
+
+gen-ai-bootcamp/**/target
+
+data-training-for-devs/courses/Data_Training_for_Java_developers/azure/materials/function.zip
+data-training-for-devs/courses/Data_Training_for_Java_developers/azure/materials/function/target
+data-training-for-devs/courses/Data_Training_for_Java_developers/azure/materials/terraform/azure/.terraform.tfstate.lock.info
+data-training-for-devs/courses/Data_Training_for_Java_developers/azure/materials/terraform/azure/.terraform/*
+data-training-for-devs/courses/Data_Training_for_Java_developers/azure/materials/terraform/azure/.terraform.lock.hcl
+data-training-for-devs/courses/Data_Training_for_Java_developers/azure/materials/terraform/azure/terraform.tfstate
+data-training-for-devs/courses/Data_Training_for_Java_developers/azure/materials/terraform/azure/terraform.tfstate.backup
