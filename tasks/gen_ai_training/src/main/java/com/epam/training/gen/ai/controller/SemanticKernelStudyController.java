@@ -1,5 +1,6 @@
 package com.epam.training.gen.ai.controller;
 
+import com.epam.training.gen.ai.service.HistoryChatService;
 import com.epam.training.gen.ai.service.SimpleChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,7 @@ import java.util.Map;
 public class SemanticKernelStudyController {
 
     private final SimpleChatService simpleChatService;
+    private final HistoryChatService historyChatService;
 
     private static final String INPUT_KEY = "input";
     private static final String TEMPERATURE_KEY = "temperature";
@@ -49,6 +51,26 @@ public class SemanticKernelStudyController {
         }
 
         return simpleChatService.getByKernelFunctionPromptFromSemanticKernel(input, temperature, metadata).map(ResponseEntity::ok);
+    }
+
+    @PostMapping("/sk/history")
+    public Mono<ResponseEntity<Map<String, Object>>> processMessageWithHistory(@RequestBody Map<String, String> request) {
+        double temperature = Double.NaN;
+        boolean metadata = Boolean.FALSE;
+        String input = request.get(INPUT_KEY);
+        if (input == null || input.isEmpty()) {
+            return Mono.just(ResponseEntity.badRequest().body(Map.of("error", "Input cannot be empty")));
+        }
+        String metadataValue = request.get(METADATA_KEY);
+        if (metadataValue != null && !metadataValue.isEmpty()) {
+            metadata = Boolean.parseBoolean(metadataValue);
+        }
+        String temperatureValue = request.get(TEMPERATURE_KEY);
+        if (temperatureValue != null && !temperatureValue.isEmpty()) {
+            temperature = Double.parseDouble(temperatureValue);
+        }
+
+        return historyChatService.processWithHistory(input, temperature, metadata).map(ResponseEntity::ok);
     }
 
 }
