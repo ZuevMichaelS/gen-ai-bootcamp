@@ -57,6 +57,26 @@ public class HistoryChatService {
                 });
     }
 
+    public Mono<Map<String, Object>> processWithHistory(Kernel kernel, ChatHistory chatHistory, String request, Double temperature, boolean includeMetadata) {
+        getChatHistory(Boolean.FALSE);
+
+        var settingsMap = promptExecutionsSettingsMap;
+        if (!temperature.isNaN()) {
+            settingsMap = Map.of(deploymentOrModelName, PromptExecutionSettings.builder()
+                    .withTemperature(temperature)
+                    .build());
+        }
+        chatHistory.addUserMessage(request);
+
+        return kernel.invokeAsync(getHistoryChatFunction(settingsMap))
+                .withArguments(getKernelFunctionArguments(request, chatHistory))
+                .withResultType(String.class)
+                .map(stringFunctionResult -> {
+                    storeResponseInHistory(stringFunctionResult);
+                    return createJsonResponse(stringFunctionResult.getResultVariable().isEmpty() ? "failed" : "success", stringFunctionResult, includeMetadata);
+                });
+    }
+
     private void storeResponseInHistory(FunctionResult<String> response) {
         if (response.getResult() != null && !response.getResult().isBlank()) {
             chatHistory.addAssistantMessage(response.getResult());
