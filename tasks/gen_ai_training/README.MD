@@ -412,3 +412,24 @@ gpt-35-turbo-1106   temperature-0.3:
 "status": "success"
 }
 ```
+# Module 4 Semantic Kernel Plugins
+Plugin service that uses current GPS coordinates to calculate sailing distance and time to the nearest {Object}
+based on the vessel's current geographic coordinates received from the plugin.
+## API
+```
+curl --location 'http://localhost:8080/sk/plugins' \
+--header 'Content-Type: application/json' \
+--data '{
+    "input": "Bay"
+}'
+```
+Response example:
+```
+{
+    "response:": [
+        "1. Ajuruteua Beach  1284.5 km  142.7 hours",
+        "2. Marajó Bay  1335.7 km  148.4 hours",
+        "3. Pará Bay  1390.3 km  154.5 hours"
+    ]
+}
+```
