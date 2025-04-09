@@ -4,7 +4,9 @@ import com.epam.training.gen.ai.model.AiModel;
 import com.epam.training.gen.ai.service.HistoryChatService;
 import com.epam.training.gen.ai.service.ModelChangeService;
 import com.epam.training.gen.ai.service.ModelService;
+import com.epam.training.gen.ai.service.NavigationService;
 import com.epam.training.gen.ai.service.SimpleChatService;
+import com.microsoft.semantickernel.orchestration.FunctionResult;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -15,6 +17,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 @RequiredArgsConstructor
 @RestController
@@ -24,6 +27,7 @@ public class SemanticKernelStudyController {
     private final HistoryChatService historyChatService;
     private final ModelService modelService;
     private final ModelChangeService modelChangeService;
+    private final NavigationService navigationService;
 
     private static final String INPUT_KEY = "input";
     private static final String TEMPERATURE_KEY = "temperature";
@@ -108,6 +112,17 @@ public class SemanticKernelStudyController {
         } else {
             return historyChatService.processWithHistory(input, temperature, metadata).map(ResponseEntity::ok);
         }
+    }
 
+    @PostMapping("/sk/plugins")
+    public Mono<ResponseEntity<Map<String, Object>>> processWithPlugin(@RequestBody Map<String, String> request) {
+        String input = request.get(INPUT_KEY);
+        if (input == null || input.isEmpty()) {
+            return Mono.just(ResponseEntity.badRequest().body(Map.of("error", "Input cannot be empty")));
+        }
+        return Mono.fromCallable(() -> {
+            List<String> result = navigationService.processWithModels(input);
+            return ResponseEntity.ok(Map.of("response:", Objects.requireNonNull(result)));
+        });
     }
 }
