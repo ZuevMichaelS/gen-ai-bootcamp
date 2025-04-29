@@ -10,10 +10,10 @@ import io.qdrant.client.QdrantClient;
 import io.qdrant.client.grpc.Collections;
 import io.qdrant.client.grpc.Collections.VectorParams;
 import io.qdrant.client.grpc.Points.PointStruct;
-import io.qdrant.client.grpc.Points.ScoredPoint;
 import io.qdrant.client.grpc.Points.SearchPoints;
 import jakarta.annotation.PostConstruct;
 import lombok.AllArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -41,7 +41,7 @@ import static io.qdrant.client.WithPayloadSelectorFactory.enable;
 @Service
 @AllArgsConstructor
 public class SimpleVectorActions {
-    private static final String COLLECTION_NAME = "demo_collection";
+    public static final String DEFAULT_COLLECTION_NAME = "demo_collection";
     private static final String INFO_KEY = "info";
     private final OpenAIAsyncClient openAIAsyncClient;
     private final QdrantClient qdrantClient;
@@ -54,7 +54,8 @@ public class SimpleVectorActions {
      * @throws ExecutionException if the vector saving operation fails
      * @throws InterruptedException if the thread is interrupted during execution
      */
-    public void processAndSaveText(String text) throws ExecutionException, InterruptedException {
+    @SneakyThrows
+    public void processAndSaveText(String collectionName, String text){
         var embeddings = getEmbeddings(text);
         var points = new ArrayList<List<Float>>();
         embeddings.forEach(
@@ -69,7 +70,7 @@ public class SimpleVectorActions {
             pointStructs.add(pointStruct);
         });
 
-        saveVector(pointStructs);
+        saveVector(collectionName, pointStructs);
     }
 
     /**
@@ -82,7 +83,7 @@ public class SimpleVectorActions {
      * @throws ExecutionException if the search operation fails
      * @throws InterruptedException if the thread is interrupted during execution
      */
-    public List<VectorSearchResponse> search(String text) throws ExecutionException, InterruptedException {
+    public List<VectorSearchResponse> search(String text, String collectionName, int responseLimit) throws ExecutionException, InterruptedException {
         var embeddings = retrieveEmbeddings(text);
         var qe = new ArrayList<Float>();
         embeddings.block().getData().forEach(embeddingItem ->
@@ -91,10 +92,10 @@ public class SimpleVectorActions {
         var searchResult = qdrantClient
                 .searchAsync(
                         SearchPoints.newBuilder()
-                                .setCollectionName(COLLECTION_NAME)
+                                .setCollectionName(collectionName)
                                 .addAllVector(qe)
                                 .setWithPayload(enable(true))
-                                .setLimit(3)
+                                .setLimit(responseLimit)
                                 .build())
                 .get();
         return searchResult.stream().map(scoredPoint ->
@@ -125,6 +126,10 @@ public class SimpleVectorActions {
      */
     @PostConstruct
     public void createCollection() throws ExecutionException, InterruptedException {
+        createCollection(DEFAULT_COLLECTION_NAME);
+    }
+
+    public void createCollection(String collectionName) throws ExecutionException, InterruptedException {
         var collectionsFuture = qdrantClient.listCollectionsAsync();
 
         if (!collectionsFuture.isDone()) {
@@ -132,11 +137,11 @@ public class SimpleVectorActions {
         }
 
         var collections = collectionsFuture.get();
-        if (collections.contains(COLLECTION_NAME)) {
-            log.info("Collection already exists: [{}]", COLLECTION_NAME);
+        if (collections.contains(collectionName)) {
+            log.info("Collection already exists: [{}]", collectionName);
         } else {
             var createResult = qdrantClient.createCollectionAsync(
-                    COLLECTION_NAME,
+                    collectionName,
                     VectorParams.newBuilder()
                             .setDistance(Collections.Distance.Cosine)
                             .setSize(1536)
@@ -153,8 +158,8 @@ public class SimpleVectorActions {
      * @throws InterruptedException if the thread is interrupted during execution
      * @throws ExecutionException if the saving operation fails
      */
-    private void saveVector(ArrayList<PointStruct> pointStructs) throws InterruptedException, ExecutionException {
-        var updateResult = qdrantClient.upsertAsync(COLLECTION_NAME, pointStructs).get();
+    private void saveVector(String collectionName, ArrayList<PointStruct> pointStructs) throws InterruptedException, ExecutionException {
+        var updateResult = qdrantClient.upsertAsync(collectionName, pointStructs).get();
         log.info(updateResult.getStatus().name());
     }
 

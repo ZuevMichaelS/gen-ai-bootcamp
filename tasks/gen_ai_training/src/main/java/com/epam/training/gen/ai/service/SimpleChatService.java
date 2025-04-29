@@ -53,6 +53,20 @@ public class SimpleChatService {
         return messages;
     }
 
+    public List<String> getRequestResponse(String request) {
+        var completions = aiAsyncClient
+                .getChatCompletions(
+                        deploymentOrModelName,
+                        new ChatCompletionsOptions(
+                                List.of(new ChatRequestUserMessage(request))))
+                .block();
+        var messages = completions.getChoices().stream()
+                .map(c -> c.getMessage().getContent())
+                .toList();
+        log.info(messages.toString());
+        return messages;
+    }
+
     public Mono<Map<String, Object>> getByKernelFunctionPromptFromSemanticKernel(
             String request, Double temperature, boolean includeMetadata) {
         var settingsMap = promptExecutionsSettingsMap;
